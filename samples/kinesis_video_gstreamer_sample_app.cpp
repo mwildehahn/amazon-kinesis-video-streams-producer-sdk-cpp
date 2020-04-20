@@ -133,6 +133,9 @@ typedef struct _CustomData {
 
     // Pts of first video frame
     uint64_t first_pts;
+
+    bool use_parsed;
+    string filePath;
 } CustomData;
 
 namespace com { namespace amazonaws { namespace kinesis { namespace video {
@@ -551,7 +554,6 @@ void kinesis_video_stream_init(CustomData *data) {
         streaming_type = STREAMING_TYPE_OFFLINE;
         data->use_absolute_fragment_times = true;
     }
-
     unique_ptr<StreamDefinition> stream_definition(new StreamDefinition(
         data->stream_name,
         hours(DEFAULT_RETENTION_PERIOD_HOURS),
@@ -577,7 +579,15 @@ void kinesis_video_stream_init(CustomData *data) {
         DEFAULT_CODEC_ID,
         DEFAULT_TRACKNAME,
         nullptr,
-        0));
+        0,
+        MKV_TRACK_INFO_TYPE_VIDEO,
+        vector<uint8_t>(),
+        DEFAULT_TRACK_ID,
+        CONTENT_STORE_PRESSURE_POLICY_DROP_TAIL_ITEM,
+        CONTENT_VIEW_OVERFLOW_POLICY_DROP_UNTIL_FRAGMENT_START,
+        data->use_parsed,
+        data->filePath));
+
     data->kinesis_video_stream = data->kinesis_video_producer->createStreamSync(move(stream_definition));
 
     // reset state
@@ -1042,12 +1052,14 @@ int main(int argc, char* argv[]) {
                 "Usage: AWS_ACCESS_KEY_ID=SAMPLEKEY AWS_SECRET_ACCESS_KEY=SAMPLESECRET ./kinesis_video_gstreamer_sample_app my-stream-name -w width -h height -f framerate -b bitrateInKBPS\n \
            or AWS_ACCESS_KEY_ID=SAMPLEKEY AWS_SECRET_ACCESS_KEY=SAMPLESECRET ./kinesis_video_gstreamer_sample_app my-stream-name\n \
            or AWS_ACCESS_KEY_ID=SAMPLEKEY AWS_SECRET_ACCESS_KEY=SAMPLESECRET ./kinesis_video_gstreamer_sample_app my-stream-name rtsp-url\n \
-           or AWS_ACCESS_KEY_ID=SAMPLEKEY AWS_SECRET_ACCESS_KEY=SAMPLESECRET ./kinesis_video_gstreamer_sample_app my-stream-name path/to/file1 path/to/file2 ...\n");
+           or AWS_ACCESS_KEY_ID=SAMPLEKEY AWS_SECRET_ACCESS_KEY=SAMPLESECRET ./kinesis_video_gstreamer_sample_app my-stream-name parse rtsp-url\n \
+           or AWS_ACCESS_KEY_ID=SAMPLEKEY AWS_SECRET_ACCESS_KEY=SAMPLESECRET ./kinesis_video_gstreamer_sample_app my-stream-name path/to/file1 path/to/file2 ...\n \
+           or AWS_ACCESS_KEY_ID=SAMPLEKEY AWS_SECRET_ACCESS_KEY=SAMPLESECRET ./kinesis_video_gstreamer_sample_app my-stream-name parse ...\n \
+           or AWS_ACCESS_KEY_ID=SAMPLEKEY AWS_SECRET_ACCESS_KEY=SAMPLESECRET ./kinesis_video_gstreamer_sample_app my-stream-name parse path/to/file1 path/to/file2 ...\n");
         return 1;
     }
 
     const int PUTFRAME_FAILURE_RETRY_COUNT = 3;
-
     CustomData data;
     char stream_name[MAX_STREAM_NAME_LEN + 1];
     int ret = 0;
@@ -1057,10 +1069,19 @@ int main(int argc, char* argv[]) {
     STRNCPY(stream_name, argv[1], MAX_STREAM_NAME_LEN);
     stream_name[MAX_STREAM_NAME_LEN] = '\0';
     data.stream_name = stream_name;
-
+    data.use_parsed = FALSE;
+    data.filePath = "";
     data.streamSource = LIVE_SOURCE;
+
     if (argc > 2) {
         string third_arg = string(argv[2]);
+        if(third_arg.compare("parse") == 0) {
+            data.use_parsed = TRUE;
+            data.filePath = "../param.json";
+        }
+        if(argc > 3) {
+            third_arg = string(argv[3]);
+        }
         // config options for live source begin with -
         if (third_arg[0] != '-') {
             string prefix = third_arg.substr(0, 4);
