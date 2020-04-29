@@ -1072,6 +1072,7 @@ bool put_frame(shared_ptr<KinesisVideoStream> kinesis_video_stream, void *frame_
                const nanoseconds &dts, FRAME_FLAGS flags, uint64_t track_id, uint32_t index)
 {
     Frame frame;
+    LOG_DEBUG("Kinesis Put Frame")
     create_kinesis_video_frame(&frame, pts, dts, flags, frame_data, len, track_id, index);
     return kinesis_video_stream->putFrame(frame);
 }
@@ -1080,6 +1081,7 @@ static GstFlowReturn
 gst_kvs_sink_handle_buffer(GstCollectPads *pads,
                            GstCollectData *track_data, GstBuffer *buf, gpointer user_data)
 {
+    LOG_DEBUG("Handling buffer")
     GstKvsSink *kvssink = GST_KVS_SINK(user_data);
     GstFlowReturn ret = GST_FLOW_OK;
     GstKvsSinkTrackData *kvs_sink_track_data = (GstKvsSinkTrackData *)track_data;
@@ -1111,6 +1113,7 @@ gst_kvs_sink_handle_buffer(GstCollectPads *pads,
 
     if (STATUS_FAILED(stream_status))
     {
+        LOG_DEBUG(("Stream status failed: 0x%08x", stream_status))
         // in offline case, we cant tell the pipeline to restream the file again in case of network outage.
         // therefore error out and let higher level application do the retry.
         if (IS_OFFLINE_STREAMING_MODE(kvssink->streaming_type) || !IS_RETRIABLE_ERROR(stream_status))

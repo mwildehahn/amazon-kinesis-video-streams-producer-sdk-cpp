@@ -129,6 +129,7 @@ bool KinesisVideoStream::start()
 {
     // No-op for now
 
+    LOG_DEBUG("Stream started")
     return true;
 }
 
@@ -155,6 +156,7 @@ bool KinesisVideoStream::resetStream()
         return false;
     }
 
+    LOG_DEBUG("Stream reset")
     return true;
 }
 
@@ -169,6 +171,7 @@ void KinesisVideoStream::free()
 bool KinesisVideoStream::stop()
 {
     STATUS status;
+    LOG_DEBUG("Stream stop")
 
     if (STATUS_FAILED(status = stopKinesisVideoStream(stream_handle_)))
     {
