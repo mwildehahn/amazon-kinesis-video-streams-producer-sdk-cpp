@@ -16,6 +16,7 @@ option(BUILD_STATIC "Build with static linkage" OFF)
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
+option(PREFER_SYSTEM_LIBRARIES "Whether or not to ignore dependencies that are are already installed")
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree" OFF)
@@ -71,13 +72,16 @@ if(BUILD_DEPENDENCIES)
 
   message(STATUS "Begin building dependencies.")
 
-  build_dependency(openssl -DBUILD_STATIC=${BUILD_STATIC} -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM})
-  build_dependency(curl -DBUILD_STATIC=${BUILD_STATIC} -DUSE_OPENSSL=${USE_OPENSSL} -DUSE_MBEDTLS=${USE_MBEDTLS})
+  if (NOT PREFER_SYSTEM_LIBRARIES)
+    build_dependency(openssl -DBUILD_STATIC=${BUILD_STATIC} -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM})
+    build_dependency(curl -DBUILD_STATIC=${BUILD_STATIC} -DUSE_OPENSSL=${USE_OPENSSL} -DUSE_MBEDTLS=${USE_MBEDTLS})
+
+    build_dependency(autoconf)
+    build_dependency(automake)
+    build_dependency(log4cplus)
+  endif()
 
   build_dependency(jsmn)
-  build_dependency(autoconf)
-  build_dependency(automake)
-  build_dependency(log4cplus)
 
   if(BUILD_TEST)
     build_dependency(gtest)
