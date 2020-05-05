@@ -1340,10 +1340,6 @@ gst_kvs_sink_change_state(GstElement *element, GstStateChange transition) {
             log4cplus::PropertyConfigurator::doConfigure(kvssink->log_config_path);
             try {
                 kinesis_video_producer_init(kvssink);
-                init_track_data(kvssink);
-                kvssink->data->first_pts = GST_CLOCK_TIME_NONE;
-                kvssink->data->producer_start_time = GST_CLOCK_TIME_NONE;
-
             } catch (runtime_error &err) {
                 oss << "Failed to init kvs producer. Error: " << err.what();
                 err_msg = oss.str();
@@ -1351,13 +1347,19 @@ gst_kvs_sink_change_state(GstElement *element, GstStateChange transition) {
                 goto CleanUp;
             }
 
+            break;
+        case GST_STATE_CHANGE_READY_TO_PAUSED:
+            break;
+        case GST_STATE_CHANGE_PAUSED_TO_PLAYING:
+            init_track_data(kvssink);
+            kvssink->data->first_pts = GST_CLOCK_TIME_NONE;
+            kvssink->data->producer_start_time = GST_CLOCK_TIME_NONE;
             if (!kinesis_video_stream_init(kvssink, err_msg)) {
                 ret = GST_STATE_CHANGE_FAILURE;
                 goto CleanUp;
             }
-            break;
-        case GST_STATE_CHANGE_READY_TO_PAUSED:
             gst_collect_pads_start (kvssink->collect);
+
             break;
         case GST_STATE_CHANGE_PAUSED_TO_READY:
             gst_collect_pads_stop (kvssink->collect);
