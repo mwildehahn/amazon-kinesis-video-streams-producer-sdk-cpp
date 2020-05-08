@@ -382,7 +382,7 @@ void create_kinesis_video_stream(GstKvsSink *kvssink) {
         stream_definition->setFrameOrderMode(FRAME_ORDERING_MODE_MULTI_TRACK_AV_COMPARE_PTS_ONE_MS_COMPENSATE);
     }
 
-    data->kinesis_video_stream = data->kinesis_video_producer->createStreamSync(move(stream_definition));
+    data->kinesis_video_stream = data->kinesis_video_producer->createStream(move(stream_definition));
     data->frame_count = 0;
     cout << "Stream is ready" << endl;
 }
